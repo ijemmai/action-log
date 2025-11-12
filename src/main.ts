@@ -71,7 +71,6 @@ Devvit.addTrigger({
               { name: "Title", value: event.targetPost?.title },
               { name: "Author", value: `u/${event.targetUser?.name}` },
               { name: "Body", value: event.targetPost?.selftext || "Empty Post" },
-              { name: "Responsible Moderator", value: event.moderator?.name },
               { name: "Responsible Moderator", value: `u/${event.moderator?.name}` },
               { name: "Subreddit", value: `r/${event.subreddit?.name}` },
             ]
