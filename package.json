@@ -8,7 +8,7 @@
     "deploy": "devvit upload",
     "dev": "dotenv -e .env -- devvit playtest",
     "login": "devvit login",
-    "launch": "devvit publish",
+    "launch": "devvit publish --public",
     "type-check": "tsc --build"
   },
   "dependencies": {

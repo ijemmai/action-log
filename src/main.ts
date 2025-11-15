@@ -46,6 +46,20 @@ Devvit.addSettings([
     scope: "installation",
     defaultValue: true
   },
+  {
+    type: "boolean",
+    name: "log-mod-notes",
+    label: "Log Mod Notes",
+    scope: "installation",
+    defaultValue: true
+  },
+  {
+    type: "boolean",
+    name: "log-removal-reason",
+    label: "Log Removal Reasons",
+    scope: "installation",
+    defaultValue: true
+  },
 ])
 
 Devvit.addTrigger({
@@ -53,12 +67,55 @@ Devvit.addTrigger({
   onEvent: async (event, context) => {
     const subreddit = await context.reddit.getCurrentSubreddit();
     const subredditIcon = subreddit.settings.communityIcon?.split("?")[0]
+    const logModNotes = await context.settings.get("log-mod-notes")
     const logBans = await context.settings.get("log-bans")
     const logUnBans = await context.settings.get("log-unbans")
     const logPostRemovals = await context.settings.get("log-post-removal")
     const logCommenRemovals = await context.settings.get("log-comment-removal")
+    const logRemovalReasons = await context.settings.get("log-removal-reason")
     const webhoookLink: string = (await context.settings.get("discord-webhook"))!
     let payload = null
+    if (event.action === "addremovalreason" && logRemovalReasons) {
+      const comments = context.reddit.getModerationLog({ subredditName: event.subreddit!.name, type: "addremovalreason", "moderatorUsernames": [event.moderator!.name] })
+      const comment = (await comments.get(1))[0]
+      payload = {
+        avatar_url: subredditIcon,
+        username: subreddit.name,
+        "embeds": [
+          {
+            color: 0x009EDD,
+            title: "✏️ Removal Reason Added",
+            fields: [
+              { name: "ID", value: `${comment.target?.id}` },
+              { name: "Author", value: `u/${event.targetUser?.name}`, inline: true },
+              { name: "Responsible Moderator", value: `u/${event.moderator?.name}`, inline: true },
+              { name: "Reason", value: `${comment.description}` },
+              { name: "Subreddit", value: `r/${event.subreddit?.name}` },
+            ]
+          }
+        ]
+      }
+    }
+    if (event.action === "addnote" && logModNotes) {
+      const notes = context.reddit.getModerationLog({ subredditName: event.subreddit!.name, type: "addnote", "moderatorUsernames": [event.moderator!.name] })
+      const note = (await notes.get(1))[0]
+      payload = {
+        avatar_url: subredditIcon,
+        username: subreddit.name,
+        "embeds": [
+          {
+            color: 0x009EDD,
+            title: "✏️ Mod Note Added",
+            fields: [
+              { name: "User", value: `u/${event.targetUser?.name}` },
+              { name: "Note", value: note.details },
+              { name: "Responsible Moderator", value: `u/${event.moderator?.name}` },
+              { name: "Subreddit", value: `r/${event.subreddit?.name}` },
+            ]
+          }
+        ]
+      }
+    }
     if (event.action === "removelink" && logPostRemovals) {
       payload = {
         avatar_url: subredditIcon,
@@ -72,8 +129,10 @@ Devvit.addTrigger({
               { name: "Author", value: `u/${event.targetUser?.name}` },
               { name: "Body", value: event.targetPost?.selftext || "Empty Post" },
               { name: "Responsible Moderator", value: `u/${event.moderator?.name}` },
+              { name: "Permalink", value: `[link](https://reddit.com${event.targetPost?.permalink})` },
               { name: "Subreddit", value: `r/${event.subreddit?.name}` },
-            ]
+            ],
+            footer: { text: `postID: ${event.targetPost?.id}` }
           }
         ]
       }
@@ -90,8 +149,10 @@ Devvit.addTrigger({
               { name: "Author", value: `u/${event.targetUser?.name}` },
               { name: "Conent", value: event.targetComment?.body },
               { name: "Responsible Moderator", value: `u/${event.moderator?.name}` },
+              { name: "Permalink", value: `[link](https://reddit.com${event.targetComment?.permalink})` },
               { name: "Subreddit", value: `r/${event.subreddit?.name}` },
-            ]
+            ],
+            footer: { text: `commentID: ${event.targetComment?.id}` }
           }
         ]
       }
