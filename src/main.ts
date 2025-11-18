@@ -158,8 +158,15 @@ Devvit.addTrigger({
       }
     }
     if (event.action === "banuser" && logBans) {
-      const users = context.reddit.getModerationLog({ subredditName: event.subreddit!.name, type: "banuser", "moderatorUsernames": [event.moderator!.name] })
-      const user = (await users.get(1))[0]
+      let users;
+      let user;
+      try {
+        users = context.reddit.getModerationLog({ subredditName: event.subreddit!.name, type: "banuser", "moderatorUsernames": [event.moderator!.name] })
+        user = (await users.get(1))[0]
+      }
+      catch {
+
+      }
       payload = {
         avatar_url: subredditIcon,
         username: subreddit.name,
@@ -170,8 +177,8 @@ Devvit.addTrigger({
             fields: [
               { name: "Member", value: `u/${event.targetUser?.name}`, inline: true },
               { name: "Responsible Moderator", value: `u/${event.moderator?.name}`, inline: true },
-              { name: "Reason", value: user.description, inline: false },
-              { name: "Duration", value: user.details },
+              { name: "Reason", value: user ? user.description : "failed to fetch reason", inline: false },
+              { name: "Duration", value: user ? user.details : "failed to fetch duration" },
               { name: "Subreddit", value: `r/${event.subreddit?.name}` },
             ]
           }
