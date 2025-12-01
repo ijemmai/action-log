@@ -4,6 +4,18 @@ import { Settings } from "./settings.js";
 
 const CACHE_DURATION = 60 * 60 * 24 * 30;
 
+interface Field {
+  name: string;
+  value: string;
+  inline?: boolean;
+}
+interface Embed {
+  color: number;
+  title: string;
+  fields: Field[];
+  footer?: { text: string };
+}
+
 export async function handleModActions(event: { type: "ModAction" } & ModAction, context: TriggerContext) {
   const settings: Settings = await context.settings.getAll();
   const subreddit = await context.reddit.getCurrentSubreddit();
@@ -12,7 +24,7 @@ export async function handleModActions(event: { type: "ModAction" } & ModAction,
   const ignoreList = settings.exclude.toLowerCase().split(",")
   if (ignoreList.includes(event.moderator!.name.toLowerCase())) return;
 
-  const embeds: Object[] = [];
+  const embeds: Embed[] = [];
   const payload = {
     avatar_url: subredditIcon,
     username: subreddit.name,
@@ -45,7 +57,7 @@ export async function handleModActions(event: { type: "ModAction" } & ModAction,
           title: "✏️ Mod Note Added",
           fields: [
             { name: "User", value: `u/${event.targetUser?.name}` },
-            { name: "Note", value: note.details },
+            { name: "Note", value: note.details! },
             { name: "Responsible Moderator", value: `u/${event.moderator?.name}` },
             { name: "Subreddit", value: `r/${event.subreddit?.name}` },
           ]
@@ -126,8 +138,8 @@ export async function handleModActions(event: { type: "ModAction" } & ModAction,
           fields: [
             { name: "Member", value: `u/${event.targetUser?.name}`, inline: true },
             { name: "Responsible Moderator", value: `u/${event.moderator?.name}`, inline: true },
-            { name: "Reason", value: user ? user.description : "failed to fetch reason", inline: false },
-            { name: "Duration", value: user ? user.details : "failed to fetch duration" },
+            { name: "Reason", value: user ? user.description! : "failed to fetch reason", inline: false },
+            { name: "Duration", value: user ? user.details! : "failed to fetch duration" },
             { name: "Subreddit", value: `r/${event.subreddit?.name}` },
           ]
         }
@@ -146,8 +158,62 @@ export async function handleModActions(event: { type: "ModAction" } & ModAction,
         }
       )
       break;
+    case event.action === "approvelink" && settings["log-approvals"]:
+      let approvedPost;
+      try {
+        approvedPost = JSON.parse((await context.redis.get(event.targetPost!.id))!)
+      } catch (error) {
+        approvedPost = {
+          author: event.targetUser?.name,
+          title: event.targetPost?.title,
+          body: event.targetPost?.selftext || "Post Body is either empty, or the post only contains attachments",
+          permalink: event.targetPost?.permalink,
+          subreddit: event.subreddit?.name
+        }
+      }
+      embeds.push(
+        {
+          color: 0x00CD70,
+          title: "✅ Post approved",
+          fields: [
+            { name: "Title", value: approvedPost.title },
+            { name: "Author", value: `u/${approvedPost.author}` },
+            { name: "Body", value: approvedPost.body },
+            { name: "Responsible Moderator", value: `u/${event.moderator?.name}` },
+            { name: "Permalink", value: `[link](https://reddit.com${approvedPost.permalink})` },
+            { name: "Subreddit", value: `r/${approvedPost.subreddit}` },
+          ]
+        }
+      )
+      break;
+    case event.action === "approvecomment" && settings["log-approvals"]:
+      let approvedComment;
+      try {
+        approvedComment = JSON.parse((await context.redis.get(event.targetComment!.id))!)
+      } catch (error) {
+        approvedComment = {
+          author: event.targetUser?.name,
+          body: event.targetComment?.body,
+          permalink: event.targetComment?.permalink,
+          subreddit: event.targetComment?.subredditId
+        }
+      }
+      embeds.push(
+        {
+          color: 0x00CD70,
+          title: "✅ Comment approved",
+          fields: [
+            { name: "Author", value: `u/${approvedComment.author}` },
+            { name: "Conent", value: approvedComment.body },
+            { name: "Responsible Moderator", value: `u/${event.moderator?.name}` },
+            { name: "Permalink", value: `[link](https://reddit.com${approvedComment.permalink})` },
+            { name: "Subreddit", value: `r/${approvedComment.subreddit}` },
+          ]
+        }
+      )
+      break;
   }
-  if (embeds && settings["discord-webhook"]) {
+  if (embeds.length > 0 && settings["discord-webhook"]) {
     try {
       await fetch(settings["discord-webhook"], {
         method: "POST",
