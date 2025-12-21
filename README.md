@@ -1,7 +1,5 @@
 A simple app that logs mod actions to a discord channel using webhooks.  
 
-Thanks to [Admin Tattler](https://developers.reddit.com/apps/admin-tattler) for the idea to include the original content of posts and comments.  
-
 Currently supported actions:  
 
 - member bans  
@@ -15,6 +13,8 @@ Currently supported actions:
 ![Mod Notes Screenshot](./pictures/mod-notes.png)
 - removal reasons  
 ![Removal Reasons Screenshot](./pictures/removal-reasons.png)
+
+Thanks to [Admin Tattler](https://developers.reddit.com/apps/admin-tattler) for the idea to include the original content of posts and comments.  
 
 [Github Repo](https://github.com/ijemmai/action-log)
 [Devvit Page](https://developers.reddit.com/apps/action-log)
