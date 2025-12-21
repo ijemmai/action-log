@@ -21,7 +21,7 @@ export async function handleModActions(event: { type: "ModAction" } & ModAction,
   const subreddit = await context.reddit.getCurrentSubreddit();
   const subredditIcon = subreddit.settings.communityIcon?.split("?")[0]
 
-  const ignoreList = settings.exclude.toLowerCase().split(",")
+  const ignoreList = settings.exclude.toLowerCase().split(",").map((username: string) => username.trim())
   if (ignoreList.includes(event.moderator!.name.toLowerCase())) return;
 
   const embeds: Embed[] = [];
