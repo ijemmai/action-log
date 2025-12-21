@@ -1,21 +1,32 @@
+# Action Log  
+
 A simple app that logs mod actions to a discord channel using webhooks.  
+
+## Actions  
 
 Currently supported actions:  
 
 - member bans  
 - member unbans  
-![Bans & Unbans Screenshot](./pictures/bans-unbans.png)
+![Bans & Unbans Screenshot](https://github.com/ijemmai/action-log/blob/8f82cb25764ce06f6574383707a1e7a43a31964c/pictures/bans-unbans.png)  
 - post removals  
-![Post Removal Screenshot](./pictures/post-delete.png)
+![Post Removal Screenshot](https://github.com/ijemmai/action-log/blob/8f82cb25764ce06f6574383707a1e7a43a31964c/pictures/post-delete.png)  
 - comment removals  
-![Comment Removal Screenshot](./pictures/comment-delete.png)
+![Comment Removal Screenshot](https://github.com/ijemmai/action-log/blob/8f82cb25764ce06f6574383707a1e7a43a31964c/pictures/comment-delete.png)  
 - mod notes  
-![Mod Notes Screenshot](./pictures/mod-notes.png)
+![Mod Notes Screenshot](https://github.com/ijemmai/action-log/blob/8f82cb25764ce06f6574383707a1e7a43a31964c/pictures/mod-notes.png)  
 - removal reasons  
-![Removal Reasons Screenshot](./pictures/removal-reasons.png)
+![Removal Reasons Screenshot](https://github.com/ijemmai/action-log/blob/8f82cb25764ce06f6574383707a1e7a43a31964c/pictures/removal-reasons.png)  
+- Post & Comment Approvals (disabled by default):  
+![Approvals Screenshot](https://github.com/ijemmai/action-log/blob/8f82cb25764ce06f6574383707a1e7a43a31964c/pictures/approves.png)
+
+## Installation Settings  
+
+Action Log allows you to customize your installation with little to no setup or knowledge required
+
 
 Thanks to [Admin Tattler](https://developers.reddit.com/apps/admin-tattler) for the idea to include the original content of posts and comments.  
 
-[Github Repo](https://github.com/ijemmai/action-log)
-[Devvit Page](https://developers.reddit.com/apps/action-log)
+[Github Repo](https://github.com/ijemmai/action-log)  
+[Devvit Page](https://developers.reddit.com/apps/action-log)  
 
