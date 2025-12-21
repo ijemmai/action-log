@@ -22,7 +22,8 @@ Currently supported actions:
 
 ## Installation Settings  
 
-Action Log allows you to customize your installation with little to no setup or knowledge required
+Action Log allows you to customize your installation with little to no setup or knowledge required  
+![Settings Screenshot](https://github.com/ijemmai/action-log/blob/c3c84c5ca476bb50d78cd9bbabd179b37d625f4e/pictures/installation-settings.png)
 
 
 Thanks to [Admin Tattler](https://developers.reddit.com/apps/admin-tattler) for the idea to include the original content of posts and comments.  
