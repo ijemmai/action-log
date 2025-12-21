@@ -7,13 +7,13 @@ Currently supported actions:
 - member bans  
 - member unbans  
 ![Bans & Unbans Screenshot](./pictures/bans-unbans.png)
-- post removals
+- post removals  
 ![Post Removal Screenshot](./pictures/post-delete.png)
-- comment removals
+- comment removals  
 ![Comment Removal Screenshot](./pictures/comment-delete.png)
-- mod notes 
+- mod notes  
 ![Mod Notes Screenshot](./pictures/mod-notes.png)
-- removal reasons
+- removal reasons  
 ![Removal Reasons Screenshot](./pictures/removal-reasons.png)
 
 
