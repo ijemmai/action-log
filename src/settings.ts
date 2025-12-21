@@ -1,4 +1,4 @@
-import { SettingsFormField } from "@devvit/public-api"
+import { Devvit, SettingsFormField } from "@devvit/public-api"
 
 export interface Settings {
   "discord-webhook": string;
