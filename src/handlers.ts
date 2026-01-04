@@ -20,15 +20,22 @@ export async function handleModActions(event: { type: "ModAction" } & ModAction,
   const settings: Settings = await context.settings.getAll();
   const subreddit = await context.reddit.getCurrentSubreddit();
   const subredditIcon = subreddit.settings.communityIcon?.split("?")[0]
+  const slack = settings["discord-webhook"].includes("https://hooks.slack.com/services");
 
-  const ignoreList = settings.exclude.toLowerCase().split(",").map((username: string) => username.trim())
-  if (ignoreList.includes(event.moderator!.name.toLowerCase())) return;
+  const ignoreList = (await context.redis.get("excludeList"))?.split(",") || []
+  if (ignoreList.includes(event.moderator!.name)) return;
 
   const embeds: Embed[] = [];
-  const payload = {
+  let payload: any = {
     avatar_url: subredditIcon,
     username: subreddit.name,
     embeds: embeds
+  }
+  const slackEmbeds: any[] = []
+  if (slack) {
+    payload = {
+      blocks: slackEmbeds
+    }
   }
   switch (true) {
     case event.action === "addremovalreason" && settings["log-removal-reason"]:
@@ -47,6 +54,55 @@ export async function handleModActions(event: { type: "ModAction" } & ModAction,
           ]
         }
       )
+      if (slack) {
+        slackEmbeds.push(
+          {
+            "type": "header",
+            "text": {
+              "type": "plain_text",
+              "text": "✏️ Removal Reason Added",
+              "emoji": true
+            }
+          },
+          {
+            "type": "divider"
+          },
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "text": "*ID*\n" + reason.target?.id
+            }
+          },
+          {
+            "type": "section",
+            "fields": [
+              {
+                "type": "mrkdwn",
+                "text": "*Author*\n" + event.targetUser?.name
+              },
+              {
+                "type": "mrkdwn",
+                "text": "*Responsible Moderator*\n" + event.moderator?.name
+              }
+            ]
+          },
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "text": "*Reason*\n" + reason.description
+            }
+          },
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "text": "*Subreddit*\n" + `r/${event.subreddit?.name}`
+            }
+          }
+        )
+      }
       break;
     case event.action === "addnote" && settings["log-mod-notes"]:
       const notes = context.reddit.getModerationLog({ subredditName: event.subreddit!.name, type: "addnote", "moderatorUsernames": [event.moderator!.name] })
@@ -63,6 +119,49 @@ export async function handleModActions(event: { type: "ModAction" } & ModAction,
           ]
         }
       )
+      if (slack) {
+        slackEmbeds.push(
+          {
+            "type": "header",
+            "text": {
+              "type": "plain_text",
+              "text": "✏️ Mod Note Added",
+              "emoji": true
+            }
+          },
+          {
+            "type": "divider"
+          },
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "text": "*User*\n" + `u/${event.targetUser?.name}`
+            }
+          },
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "text": "*Note*\n" + `${note.details!}`
+            }
+          },
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "text": "*Responsible Moderator*\n" + `u/${event.moderator?.name}`
+            }
+          },
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "text": "*Subreddit*\n" + `r/${event.subreddit?.name}`
+            }
+          },
+        )
+      }
       break;
     case event.action === "removelink" && settings["log-post-removal"]:
       let post;
@@ -92,6 +191,74 @@ export async function handleModActions(event: { type: "ModAction" } & ModAction,
           footer: { text: `postID: ${event.targetPost?.id}` }
         }
       )
+      if (slack) {
+        slackEmbeds.push(
+          {
+            "type": "header",
+            "text": {
+              "type": "plain_text",
+              "text": "📋 Post Deleted",
+              "emoji": true
+            }
+          },
+          {
+            "type": "divider"
+          },
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "text": "*Title*\n" + post.title
+            }
+          },
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "text": "*Author*\n" + `u/${post.author}`
+            }
+          },
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "text": "*Body*\n" + `${post.body}`
+            }
+          },
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "text": "*Responsible Moderator*\n" + `u/${event.moderator?.name}`
+            }
+          },
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "text": "*permalink*\n" + `<https://reddit.com${post.permalink}|link>`
+            }
+          },
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "text": "*Subreddit*\n" + `r/${post.subreddit}`
+            }
+          },
+          {
+            "type": "context",
+            "elements": [
+              {
+                "type": "plain_text",
+                "text": `postID: ${event.targetPost?.id}`,
+                "emoji": true
+              }
+            ]
+          }
+        )
+      }
+
       break;
     case event.action === "removecomment" && settings["log-comment-removal"]:
       let comment;
@@ -119,6 +286,66 @@ export async function handleModActions(event: { type: "ModAction" } & ModAction,
           footer: { text: `commentID: ${event.targetComment?.id}` }
         }
       )
+      if (slack) {
+        slackEmbeds.push(
+          {
+            "type": "header",
+            "text": {
+              "type": "plain_text",
+              "text": "💬 Comment Deleted",
+              "emoji": true
+            }
+          },
+          {
+            "type": "divider"
+          },
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "text": "*Author*\n" + `u/${comment.author}`
+            }
+          },
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "text": "*Body*\n" + `${comment.body}`
+            }
+          },
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "text": "*Responsible Moderator*\n" + `u/${event.moderator?.name}`
+            }
+          },
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "text": "*permalink*\n" + `<https://reddit.com${comment.permalink}|link>`
+            }
+          },
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "text": "*Subreddit*\n" + `r/${comment.subreddit}`
+            }
+          },
+          {
+            "type": "context",
+            "elements": [
+              {
+                "type": "plain_text",
+                "text": `commentID: ${event.targetComment?.id}`,
+                "emoji": true
+              }
+            ]
+          }
+        )
+      }
       break;
     case event.action === "banuser" && settings["log-bans"]:
       let users;
@@ -144,8 +371,57 @@ export async function handleModActions(event: { type: "ModAction" } & ModAction,
           ]
         }
       )
+      if (slack) {
+        slackEmbeds.push(
+          {
+            "type": "header",
+            "text": {
+              "type": "plain_text",
+              "text": "🔨 Member Banned",
+              "emoji": true
+            }
+          },
+          {
+            "type": "divider"
+          },
+          {
+            "type": "section",
+            "fields": [
+              {
+                "type": "mrkdwn",
+                "text": "*Member*\n" + `u/${event.targetUser?.name}`
+              },
+              {
+                "type": "mrkdwn",
+                "text": "*Responsible Moderator*\n" + `u/${event.moderator?.name}`
+              }
+            ]
+          },
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "text": "*Reason*\n" + (user ? user.description! : "failed to fetch reason")
+            }
+          },
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "text": "*Duration*\n" + (user ? user.details! : "failed to fetch duration")
+            }
+          },
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "text": "*Subreddit*\n" + `r/${event.subreddit?.name}`
+            }
+          }
+        )
+      }
       break;
-    case event.action === "unbanuser" && settings["log-ubans"]:
+    case event.action === "unbanuser" && settings["log-unbans"]:
       embeds.push(
         {
           color: 0x00CD70,
@@ -157,6 +433,41 @@ export async function handleModActions(event: { type: "ModAction" } & ModAction,
           ]
         }
       )
+      if (slack) {
+        slackEmbeds.push(
+          {
+            "type": "header",
+            "text": {
+              "type": "plain_text",
+              "text": "🩹 Member Unbanned",
+              "emoji": true
+            }
+          },
+          {
+            "type": "divider"
+          },
+          {
+            "type": "section",
+            "fields": [
+              {
+                "type": "mrkdwn",
+                "text": "*Member*\n" + `u/${event.targetUser?.name}`
+              },
+              {
+                "type": "mrkdwn",
+                "text": "*Responsible Moderator*\n" + `u/${event.moderator?.name}`
+              }
+            ]
+          },
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "text": "*Subreddit*\n" + `r/${event.subreddit?.name}`
+            }
+          }
+        )
+      }
       break;
     case event.action === "approvelink" && settings["log-approvals"]:
       let approvedPost;
@@ -185,6 +496,73 @@ export async function handleModActions(event: { type: "ModAction" } & ModAction,
           ]
         }
       )
+      if (slack) {
+        slackEmbeds.push(
+          {
+            "type": "header",
+            "text": {
+              "type": "plain_text",
+              "text": "✅ Post approved",
+              "emoji": true
+            }
+          },
+          {
+            "type": "divider"
+          },
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "text": "*Title*\n" + approvedPost.title
+            }
+          },
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "text": "*Author*\n" + `u/${approvedPost.author}`
+            }
+          },
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "text": "*Body*\n" + `${approvedPost.body}`
+            }
+          },
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "text": "*Responsible Moderator*\n" + `u/${event.moderator?.name}`
+            }
+          },
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "text": "*permalink*\n" + `<https://reddit.com${approvedPost.permalink}|link>`
+            }
+          },
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "text": "*Subreddit*\n" + `r/${approvedPost.subreddit}`
+            }
+          },
+          {
+            "type": "context",
+            "elements": [
+              {
+                "type": "plain_text",
+                "text": `postID: ${event.targetPost?.id}`,
+                "emoji": true
+              }
+            ]
+          }
+        )
+      }
       break;
     case event.action === "approvecomment" && settings["log-approvals"]:
       let approvedComment;
@@ -211,6 +589,66 @@ export async function handleModActions(event: { type: "ModAction" } & ModAction,
           ]
         }
       )
+      if (slack) {
+        slackEmbeds.push(
+          {
+            "type": "header",
+            "text": {
+              "type": "plain_text",
+              "text": "✅ Comment approved",
+              "emoji": true
+            }
+          },
+          {
+            "type": "divider"
+          },
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "text": "*Author*\n" + `u/${approvedComment.author}`
+            }
+          },
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "text": "*Body*\n" + `${approvedComment.body}`
+            }
+          },
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "text": "*Responsible Moderator*\n" + `u/${event.moderator?.name}`
+            }
+          },
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "text": "*permalink*\n" + `<https://reddit.com${approvedComment.permalink}|link>`
+            }
+          },
+          {
+            "type": "section",
+            "text": {
+              "type": "mrkdwn",
+              "text": "*Subreddit*\n" + `r/${approvedComment.subreddit}`
+            }
+          },
+          {
+            "type": "context",
+            "elements": [
+              {
+                "type": "plain_text",
+                "text": `commentID: ${event.targetComment?.id}`,
+                "emoji": true
+              }
+            ]
+          }
+        )
+      }
       break;
   }
   if (embeds.length > 0 && settings["discord-webhook"]) {

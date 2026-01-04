@@ -3,7 +3,7 @@ import { Devvit, SettingsFormField } from "@devvit/public-api"
 export interface Settings {
   "discord-webhook": string;
   "log-bans": boolean;
-  "log-ubans": boolean;
+  "log-unbans": boolean;
   "log-post-removal": boolean;
   "log-comment-removal": boolean;
   "log-removal-reason": boolean;
@@ -20,17 +20,19 @@ export const settings: SettingsFormField[] = [
     scope: "installation",
     placeholder: "https://discord.com/api/webhooks/",
     onValidate: async ({ value }) => {
-      if (!value?.includes("https://discord.com/api/webhooks/")) {
-        return "Please input a correct Discord Webhook link"
+      if (!(value?.includes("https://discord.com/api/webhooks/") || value?.includes("https://hooks.slack.com/services"))) {
+        return "Please input a correct Discord or Slack Webhook link"
       }
     },
   },
   {
-    type: "string",
+    type: "paragraph",
+    disabled: true,
     name: "exclude",
-    label: "Usernames to exclude when logging separated by a \",\"",
+    label: "Username exclusions no longer supported through here, instead find the select menu on the subreddit page under 'Action Log exclude list'",
     scope: "installation",
-    defaultValue: ""
+    defaultValue: "No longer supported through here, instead find the select menu on the subreddit page under 'Action Log exclude list'",
+    placeholder: "No longer supported through here, instead find the select menu on the subreddit page under 'Action Log exclude list'",
   },
   {
     type: "group",

@@ -1,6 +1,6 @@
 # Action Log  
 
-A simple app that logs mod actions to a discord channel using webhooks.  
+A simple app that logs mod actions to a Discord (and now Slack!) channel using webhooks.  
 
 ## Actions  
 
