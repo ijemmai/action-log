@@ -70,7 +70,7 @@ Devvit.addMenuItem({
     const mods = await (context.reddit.getModerators({ subredditName: subreddit })).all()
     let baseValue = (await context.redis.get("excludeList"))?.split(",") || []
     const data = {
-      moderators: mods.map(mod => mod.username).concat(["reddit", "[ Redacted ]"]).map(mod => ({ label: mod, value: mod })),
+      moderators: mods.map(mod => mod.username).concat(["reddit", "[ Redacted ]", "AutoModerator"]).map(mod => ({ label: mod, value: mod })),
       baseValue: baseValue
     };
     context.ui.showForm(form, data)
