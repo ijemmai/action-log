@@ -4,6 +4,13 @@ import { Settings } from "./settings.js";
 
 const CACHE_DURATION = 60 * 60 * 24 * 30;
 
+enum ACTION_LOG_DURATION {
+  daily = 60 * 60 * 24,
+  hourly = 60 * 60,
+  monthly = 60 * 60 * 24 * 30,
+  never = 0
+}
+
 interface Field {
   name: string;
   value: string;
@@ -21,6 +28,7 @@ export async function handleModActions(event: { type: "ModAction" } & ModAction,
   const subreddit = await context.reddit.getCurrentSubreddit();
   const subredditIcon = subreddit.settings.communityIcon?.split("?")[0]
   const slack = settings["discord-webhook"].includes("https://hooks.slack.com/services");
+  let link = settings["discord-webhook"];
 
   const ignoreList = (await context.redis.get("excludeList"))?.split(",") || []
   if (ignoreList.includes(event.moderator!.name)) return;
@@ -39,6 +47,7 @@ export async function handleModActions(event: { type: "ModAction" } & ModAction,
   }
   switch (true) {
     case event.action === "addremovalreason" && settings["log-removal-reason"]:
+      link = settings["webhook-removal-reason"] ?? link;
       const reasons = context.reddit.getModerationLog({ subredditName: event.subreddit!.name, type: "addremovalreason", "moderatorUsernames": [event.moderator!.name] })
       const reason = (await reasons.get(1))[0]
       embeds.push(
@@ -105,6 +114,7 @@ export async function handleModActions(event: { type: "ModAction" } & ModAction,
       }
       break;
     case event.action === "addnote" && settings["log-mod-notes"]:
+      link = settings["webhook-mod-notes"] ?? link;
       const notes = context.reddit.getModerationLog({ subredditName: event.subreddit!.name, type: "addnote", "moderatorUsernames": [event.moderator!.name] })
       const note = (await notes.get(1))[0]
       embeds.push(
@@ -164,6 +174,7 @@ export async function handleModActions(event: { type: "ModAction" } & ModAction,
       }
       break;
     case event.action === "removelink" && settings["log-post-removal"]:
+      link = settings["webhook-post-removal"] ?? link;
       let post;
       try {
         post = JSON.parse((await context.redis.get(event.targetPost!.id))!)
@@ -261,6 +272,7 @@ export async function handleModActions(event: { type: "ModAction" } & ModAction,
 
       break;
     case event.action === "removecomment" && settings["log-comment-removal"]:
+      link = settings["webhook-comment-removal"] ?? link;
       let comment;
       try {
         comment = JSON.parse((await context.redis.get(event.targetComment!.id))!)
@@ -348,6 +360,7 @@ export async function handleModActions(event: { type: "ModAction" } & ModAction,
       }
       break;
     case event.action === "banuser" && settings["log-bans"]:
+      link = settings["webhook-bans"] ?? link;
       let users;
       let user;
       try {
@@ -422,6 +435,7 @@ export async function handleModActions(event: { type: "ModAction" } & ModAction,
       }
       break;
     case event.action === "unbanuser" && settings["log-unbans"]:
+      link = settings["webhook-unbans"] ?? link;
       embeds.push(
         {
           color: 0x00CD70,
@@ -470,6 +484,7 @@ export async function handleModActions(event: { type: "ModAction" } & ModAction,
       }
       break;
     case event.action === "approvelink" && settings["log-approvals"]:
+      link = settings["webhook-approvals"] ?? link;
       let approvedPost;
       try {
         approvedPost = JSON.parse((await context.redis.get(event.targetPost!.id))!)
@@ -565,6 +580,7 @@ export async function handleModActions(event: { type: "ModAction" } & ModAction,
       }
       break;
     case event.action === "approvecomment" && settings["log-approvals"]:
+      link = settings["webhook-approvals"] ?? link;
       let approvedComment;
       try {
         approvedComment = JSON.parse((await context.redis.get(event.targetComment!.id))!)
@@ -653,7 +669,7 @@ export async function handleModActions(event: { type: "ModAction" } & ModAction,
   }
   if (embeds.length > 0 && settings["discord-webhook"]) {
     try {
-      await fetch(settings["discord-webhook"], {
+      await fetch(link, {
         method: "POST",
         headers: {
           'Content-Type': 'application/json',

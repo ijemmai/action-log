@@ -28,6 +28,4 @@ Action Log allows you to customize your installation with little to no setup or 
 
 Thanks to [Admin Tattler](https://developers.reddit.com/apps/admin-tattler) for the idea to include the original content of posts and comments.  
 
-[Github Repo](https://github.com/ijemmai/action-log)  
-[Devvit Page](https://developers.reddit.com/apps/action-log)  
 

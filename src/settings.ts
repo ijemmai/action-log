@@ -10,13 +10,20 @@ export interface Settings {
   "log-mod-notes": boolean;
   "log-approvals": boolean;
   "exclude": string;
+  "webhook-bans": string;
+  "webhook-unbans": string;
+  "webhook-post-removal": string;
+  "webhook-comment-removal": string;
+  "webhook-removal-reason": string;
+  "webhook-mod-notes": string;
+  "webhook-approvals": string;
 }
 
 export const settings: SettingsFormField[] = [
   {
     type: "string",
     name: "discord-webhook",
-    label: "Discord Webhook",
+    label: "Webhook URL",
     scope: "installation",
     placeholder: "https://discord.com/api/webhooks/",
     onValidate: async ({ value }) => {
@@ -89,4 +96,96 @@ export const settings: SettingsFormField[] = [
     ],
     label: "What to log?"
   },
+  {
+    type: "group",
+    fields: [
+      {
+        type: "string",
+        name: "webhook-bans",
+        label: "Bans?",
+        scope: "installation",
+      },
+      {
+        type: "string",
+        name: "webhook-unbans",
+        label: "Unbans?",
+        scope: "installation",
+      },
+      {
+        type: "string",
+        name: "webhook-post-removal",
+        label: "Post Removals?",
+        scope: "installation",
+      },
+      {
+        type: "string",
+        name: "webhook-comment-removal",
+        label: "Comment Removals?",
+        scope: "installation",
+      },
+      {
+        type: "string",
+        name: "webhook-mod-notes",
+        label: "Mod Notes",
+        scope: "installation",
+      },
+      {
+        type: "string",
+        name: "webhook-removal-reason",
+        label: "Removal Reasons",
+        scope: "installation",
+      },
+      {
+        type: "string",
+        name: "webhook-approvals",
+        label: "Approvals",
+        scope: "installation",
+      },
+    ],
+    label: "Optional: Fine grained webhook links",
+    helpText: "Will be used if given, otherwise will default to the general webhook link"
+  },
+  {
+    type: "group",
+    label: "Backup and Exports (currently only available to discord)",
+    helpText: "to start automatic exports, please press the button on the subreddit page",
+    fields: [
+      {
+        type: "string",
+        name: "export-path",
+        label: "Export Webhook",
+        scope: "installation",
+        placeholder: "https://discord.com/api/webhooks/...",
+        onValidate: async ({ value }) => {
+          if (!(value?.includes("https://discord.com/api/webhooks/") || value?.includes("https://hooks.slack.com/services"))) {
+            return "Please input a correct Discord or Slack Webhook link"
+          }
+        },
+      },
+      {
+        type: "select",
+        name: "export-frequency",
+        label: "Export Frequency",
+        scope: "installation",
+        options: [
+          {
+            label: "Daily",
+            value: "daily",
+          },
+          {
+            label: "Weekly",
+            value: "weekly",
+          },
+          {
+            label: "Monthly",
+            value: "monthly",
+          },
+          {
+            label: "Never (Only Manual)",
+            value: "never",
+          },
+        ],
+      },
+    ],
+  }
 ]

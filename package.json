@@ -12,10 +12,10 @@
     "type-check": "tsc --build"
   },
   "dependencies": {
-    "@devvit/public-api": "0.12.7"
+    "@devvit/public-api": "0.15.0"
   },
   "devDependencies": {
-    "devvit": "^0.12.17",
+    "devvit": "0.15.0",
     "dotenv-cli": "8.0.0",
     "typescript": "5.8.3"
   }
