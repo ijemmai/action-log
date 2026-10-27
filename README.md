@@ -26,6 +26,4 @@ Action Log allows you to customize your installation with little to no setup or 
 ![Settings Screenshot](https://raw.githubusercontent.com/ijemmai/action-log/main/pictures/installation-settings.png)
 
 
-Thanks to [Admin Tattler](https://developers.reddit.com/apps/admin-tattler) for the idea to include the original content of posts and comments.  
-
-
+Thanks to [Admin Tattler](https://developers.reddit.com/apps/admin-tattler) for the idea to include the original content of posts and comments.

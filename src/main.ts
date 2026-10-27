@@ -77,65 +77,93 @@ Devvit.addMenuItem({
   }
 })
 
-const fetchModActionList = async (context: any, cutoffdays: number) =>{
+const fetchModActionList = async (context: any, cutoffdays: number) => {
     const subreddit = await context.reddit.getCurrentSubredditName();
     const settings: Settings = await context.settings.getAll();
-    const modlog: any= {
-      bans: [],
-      unbans: [],
-      postRemovals: [],
-      modReasons: [],
-      commentRemovals: [],
-      approvals: []
-    }
+    const cutoffDate = new Date(Date.now() - cutoffdays * 24 * 60 * 60 * 1000);
+
+    // Build fetch promises for enabled log types - RUN IN PARALLEL
+    const fetchPromises: Promise<ModAction[]>[] = [];
+
     if (settings["log-bans"]) {
-      modlog.bans = await context.reddit.getModerationLog({ subredditName: subreddit, type: "banuser" }).all()
+      fetchPromises.push(
+        context.reddit.getModerationLog({ subredditName: subreddit, type: "banuser" }).all()
+      );
     }
     if (settings["log-unbans"]) {
-      modlog.unbans = await context.reddit.getModerationLog({ subredditName: subreddit, type: "unbanuser" }).all()
+      fetchPromises.push(
+        context.reddit.getModerationLog({ subredditName: subreddit, type: "unbanuser" }).all()
+      );
     }
     if (settings["log-post-removal"]) {
-      modlog.postRemovals = await context.reddit.getModerationLog({ subredditName: subreddit, type: "removelink" }).all()
+      fetchPromises.push(
+        context.reddit.getModerationLog({ subredditName: subreddit, type: "removelink" }).all()
+      );
     }
     if (settings["log-removal-reason"]) {
-      modlog.modReasons = await context.reddit.getModerationLog({ subredditName: subreddit, type: "addremovalreason" }).all()
+      fetchPromises.push(
+        context.reddit.getModerationLog({ subredditName: subreddit, type: "addremovalreason" }).all()
+      );
     }
     if (settings["log-comment-removal"]) {
-      modlog.commentRemovals = await context.reddit.getModerationLog({ subredditName: subreddit, type: "removecomment" }).all()
+      fetchPromises.push(
+        context.reddit.getModerationLog({ subredditName: subreddit, type: "removecomment" }).all()
+      );
     }
     if (settings["log-approvals"]) {
-      modlog.approvals = await context.reddit.getModerationLog({ subredditName: subreddit, type: "approvelink" }).all()
-      modlog.approvals.push(...await context.reddit.getModerationLog({ subredditName: subreddit, type: "approvecomment" }).all())
+      fetchPromises.push(
+        context.reddit.getModerationLog({ subredditName: subreddit, type: "approvelink" }).all()
+      );
+      fetchPromises.push(
+        context.reddit.getModerationLog({ subredditName: subreddit, type: "approvecomment" }).all()
+      );
     }
-    //Combine all properties of the modlog object into one array
-    const actionList = Object.values(modlog).flat() as ModAction[]
-    //Drop the removal when a removal reason exists for the same target, so only the reason is kept
-    const reasonTargets = new Set(
-      actionList
-        .filter(action => action.type === "addremovalreason" && action.target?.id)
-        .map(action => action.target!.id)
-    )
-    const filteredList = actionList.filter(
-      action => (action.type !== "removelink" && action.type !== "removecomment") || !reasonTargets.has(action.target?.id ?? "")
-    )
-    const cutoffDate = new Date(Date.now() - cutoffdays * 24 * 60 * 60 * 1000)
-    const finalList = filteredList.filter(
-      action => action.createdAt >= cutoffDate
-    )
-    return finalList.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-}
+
+    // Execute all fetches in parallel
+    const results = await Promise.all(fetchPromises);
+
+    // Combine all results
+    const actionList = results.flat() as ModAction[];
+
+    // Pass 1: Build Set of all removal reason targets (order-independent)
+    const reasonTargets = new Set<string>();
+    for (const action of actionList) {
+      if (action.type === "addremovalreason" && action.target?.id) {
+        reasonTargets.add(action.target.id);
+      }
+    }
+
+    // Pass 2: Filter by date and removal reasons, collect final list
+    const finalList: ModAction[] = [];
+    for (const action of actionList) {
+      // Early date filter - skip if outside cutoff
+      if (action.createdAt < cutoffDate) continue;
+
+      // Skip removals that have a corresponding reason
+      if ((action.type === "removelink" || action.type === "removecomment") &&
+          action.target?.id &&
+          reasonTargets.has(action.target.id)) {
+        continue;
+      }
+
+      finalList.push(action);
+    }
+
+    // Sort by createdAt descending (newest first)
+    return finalList.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
 
 function compileCSV(actionList:ModAction[]){
     let csvContent = "id,type,createdAt,body,title,author,moderator\n";
     actionList.forEach(action => {
-      csvContent += `${action.id},${action.type},${action.createdAt},${action.target?.body},${action.target?.title},${action.target?.author},${action.moderatorName}\n`
+      csvContent += `${action.id},${action.type},${action.createdAt},\"${action.target?.body}\",\"${action.target?.title}\",${action.target?.author},${action.moderatorName}\n`
     })
     return csvContent;
 }
 
-Devvit.addSchedulerJob({  
-  name: 'AutoExport',  
-  onRun: async (event, context) => {  
+Devvit.addSchedulerJob({
+  name: 'AutoExport',
+  onRun: async (event, context) => {
     let frequency = await context.settings.get("export-frequency")
     frequency = frequency[0]
     if(frequency == "never") return
@@ -151,12 +179,12 @@ Devvit.addSchedulerJob({
     try {
     await fetch(link, {
       method: "POST",
-      body: data 
+      body: data
     })
     } catch (error) {
       console.log(error)
     }
-  }  
+  }
 });
 
 Devvit.addMenuItem({
@@ -174,7 +202,7 @@ Devvit.addMenuItem({
     try {
     await fetch(link, {
       method: "POST",
-      body: data 
+      body: data
     })
     await context.ui.showToast("Exported Successfully")
     } catch (error) {
