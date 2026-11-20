@@ -1,0 +1,7 @@
+{
+  "name": "action-log",
+  "blocks": {
+    "entry": "src/main.ts",
+    "triggers": ["onModAction","onPostCreate","onPostSubmit","onCommentCreate","onCommentSubmit"]
+  }
+}
