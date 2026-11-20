@@ -166,6 +166,7 @@ export const settings: SettingsFormField[] = [
         type: "select",
         name: "export-frequency",
         label: "Export Frequency",
+        helpText: "please restart the auto exporting from the subreddit page after changing this if you have it on",
         scope: "installation",
         options: [
           {
@@ -195,6 +196,15 @@ export const settings: SettingsFormField[] = [
         label: "Custom Cron String",
         scope: 'installation',
         helpText: "ignored if Custom frequency isn't selected",
+        placeholder: '* * * * *',
+        onValidate: async ({ value }) => {
+          if (value) {
+            let cronregex = new RegExp(/^(\*|([0-9]|1[0-9]|2[0-9]|3[0-9]|4[0-9]|5[0-9])|\*\/([0-9]|1[0-9]|2[0-9]|3[0-9]|4[0-9]|5[0-9])) (\*|([0-9]|1[0-9]|2[0-3])|\*\/([0-9]|1[0-9]|2[0-3])) (\*|([1-9]|1[0-9]|2[0-9]|3[0-1])|\*\/([1-9]|1[0-9]|2[0-9]|3[0-1])) (\*|([1-9]|1[0-2])|\*\/([1-9]|1[0-2])) (\*|([0-6])|\*\/([0-6]))$/);
+            if (!cronregex.test(value)) {
+              return "Please input a valid cron string"
+            }
+          }
+        },
         name: "custom_cron_string"
       },
       {
@@ -211,7 +221,8 @@ export const settings: SettingsFormField[] = [
             label: "JSON",
             value: "json",
           },
-        ]
+        ],
+        defaultValue: ["csv"],
       }
     ],
   }

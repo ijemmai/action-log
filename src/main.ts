@@ -161,7 +161,19 @@ function compileCSV(actionList:ModAction[]){
     return csvContent;
 }
 function compileJSON(actionList: ModAction[]) {
-
+  let json:any[] = []
+  actionList.forEach(action => {
+    json.push({
+      id: action.id,
+      type: action.type,
+      createdAt: action.createdAt,
+      body: action.target?.body,
+      title: action.target?.title,
+      author: action.target?.author,
+      moderatorName: action.moderatorName
+    })
+  })
+  return json;
 }
 
 Devvit.addSchedulerJob({
@@ -175,10 +187,17 @@ Devvit.addSchedulerJob({
     if(frequency == "daily") cutoffdays = 1;
     if(frequency == "weekly") cutoffdays = 30;
     const actionList = await fetchModActionList(context,cutoffdays);
-    const csvContent = compileCSV(actionList)
+    const exportFormat = (await context.settings.get("export_format"))!
     const data = new FormData()
     const link: string = (await context.settings.get("export-path"))!
-    data.append("files[0]",new Blob([csvContent],{type: "text/csv"}),`export_${new Date().toDateString()}.csv`)
+    if (exportFormat == "csv") {
+      const csvContent = compileCSV(actionList)
+      data.append("files[0]",new Blob([csvContent],{type: "text/csv"}),`export_${new Date().toDateString()}.csv`)
+    }
+    if (exportFormat == "json") {
+      const jsonContent = compileJSON(actionList)
+      data.append("files[0]",new Blob([JSON.stringify(jsonContent)],{type: "text/json"}),`export_${new Date().toDateString()}.json`)
+    }
     try {
     await fetch(link, {
       method: "POST",
@@ -222,7 +241,7 @@ Devvit.addMenuItem({
     let startAutomaticExports = (await context.settings.get("export-frequency"))!
     startAutomaticExports = startAutomaticExports[0]
     if(startAutomaticExports == "never") return;
-    let cronstring = ""
+    let cronstring: string | undefined = ""
     switch (startAutomaticExports) {
       case "daily":
         cronstring = "0 0 * * *"
@@ -236,7 +255,7 @@ Devvit.addMenuItem({
       case "custom":
         cronstring =  await context.settings.get("custom_cron_string")
         if (cronstring == undefined) {
-          return context.ui.showToast(text)
+          return context.ui.showToast("Please make sure you set a cron string in settings")
         }
         break;
     }
@@ -244,7 +263,7 @@ Devvit.addMenuItem({
     for(let job of currentJobs){
       if(job.name == 'AutoExport'){
         await context.scheduler.cancelJob(job.id);
-        await context.ui.showToast("Stopped Auto Export")
+        context.ui.showToast("Stopped Auto Export")
         return
       }
     }
@@ -252,7 +271,7 @@ Devvit.addMenuItem({
       name: "AutoExport",
       cron: cronstring
     })
-    await context.ui.showToast("Started Auto Export")
+    context.ui.showToast("Started Auto Export")
   }
 })
 
