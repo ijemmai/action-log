@@ -184,8 +184,35 @@ export const settings: SettingsFormField[] = [
             label: "Never (Only Manual)",
             value: "never",
           },
+          {
+            label: "Custom",
+            value: "custom",
+          },
         ],
       },
+      {
+        type: "string",
+        label: "Custom Cron String",
+        scope: 'installation',
+        helpText: "ignored if Custom frequency isn't selected",
+        name: "custom_cron_string"
+      },
+      {
+        type: "select",
+        scope: 'installation',
+        label: "Format",
+        name: "export_format",
+        options: [
+          {
+            label: "CSV",
+            value: "csv",
+          },
+          {
+            label: "JSON",
+            value: "json",
+          },
+        ]
+      }
     ],
   }
 ]

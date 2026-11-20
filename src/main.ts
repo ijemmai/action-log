@@ -160,6 +160,9 @@ function compileCSV(actionList:ModAction[]){
     })
     return csvContent;
 }
+function compileJSON(actionList: ModAction[]) {
+
+}
 
 Devvit.addSchedulerJob({
   name: 'AutoExport',
@@ -229,6 +232,12 @@ Devvit.addMenuItem({
         break;
       case "monthly":
         cronstring = "0 0 1 * *"
+        break;
+      case "custom":
+        cronstring =  await context.settings.get("custom_cron_string")
+        if (cronstring == undefined) {
+          return context.ui.showToast(text)
+        }
         break;
     }
     const currentJobs = await context.scheduler.listJobs()
